@@ -1,8 +1,18 @@
 [package]
+edition = "2021"
 name = "matrix-bot"
 version = "0.1.0"
-edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+clap = {version = "3.2.8", features = ["derive"]}
+color-eyre = "0.6.1"
+config = "0.13.1"
+dotenv = "0.15.0"
+matrix-sdk = {git = "https://github.com/matrix-org/matrix-rust-sdk.git", rev = "47cfac7f4c35b395b5ccd4cf7b6cdb7f12e7562a", features = ["eyre", "markdown"]}
+serde = {version = "1.0.138", features = ["derive"]}
+tokio = {version = "1.19.2", features = ["full"]}
+tracing = "0.1.35"
+tracing-futures = "0.2.5"
+tracing-subscriber = {version = "0.3.14", features = ["env-filter"]}
