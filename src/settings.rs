@@ -1,6 +1,6 @@
 //! Configuration module
 
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
 use config::{ConfigError, Environment, File};
 use serde::{de::Error, Deserialize, Deserializer};
@@ -12,6 +12,10 @@ pub struct Settings {
 	/// Logging level
 	#[serde(deserialize_with = "deserialize_log_level")]
 	pub log_level: Level,
+	/// Matrix login information
+	pub login: LoginSettings,
+	/// Persons who have access to the bot.
+	pub access: AccessSettings,
 }
 
 impl Settings {
@@ -32,6 +36,29 @@ impl Settings {
 			.try_deserialize()?;
 		Ok(config)
 	}
+}
+
+/// Login settings
+#[derive(Debug, Clone, Deserialize)]
+pub struct LoginSettings {
+	/// Homeserver.
+	pub home_server: String,
+	/// Username.
+	pub user: String,
+	/// Password.
+	pub password: String,
+	/// Location of state-store
+	pub state_store: PathBuf,
+}
+
+// TODO: Use MXIDs.
+/// Access control settings
+#[derive(Debug, Clone, Deserialize)]
+pub struct AccessSettings {
+	/// Admins (full access)
+	pub admins: Vec<String>,
+	/// Moderators (execute commands only)
+	pub mods: Vec<String>,
 }
 
 /// Deserializes `String` into `tracing::Level`

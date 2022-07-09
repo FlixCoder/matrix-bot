@@ -1,1 +1,19 @@
+# Logging level.
 log_level: TRACE
+# Login information
+login:
+  # Homeserver
+  home_server: https://matrix.org
+  # Username
+  user: some-user
+  # Password
+  password: some-password
+  # Location of state-store, i.e. folder to store encryption keys
+  state_store: "./data/state"
+# Access control to the bot.
+access:
+  # Administrators with full access, including invite rights.
+  admins:
+    - "@some-use:matrix.org"
+  # Moderators with access to using commands only.
+  mods: []
