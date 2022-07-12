@@ -1,5 +1,6 @@
 //! Crate library.
 
+mod commands;
 mod events;
 mod matrix;
 mod matrix_fix;

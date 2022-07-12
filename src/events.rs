@@ -1,18 +1,26 @@
 //! Event handlers for matrix events.
 #![allow(clippy::unused_async)] // Matrix handlers are async
 
-use color_eyre::{eyre::eyre, Result};
+use clap::Parser;
+use color_eyre::{
+	eyre::{bail, eyre},
+	Result,
+};
 use matrix_sdk::{
 	event_handler::Ctx,
 	room::Room,
 	ruma::events::room::{
 		member::{MembershipState, StrippedRoomMemberEvent, SyncRoomMemberEvent},
-		message::OriginalSyncRoomMessageEvent,
+		message::{OriginalSyncRoomMessageEvent, RoomMessageEventContent},
 	},
 	Client, RoomType,
 };
 
-use crate::{matrix::get_unique_members, settings::Settings};
+use crate::{
+	commands::{parse_arguments, Command},
+	matrix::get_unique_members,
+	settings::Settings,
+};
 
 /// Matrix room message event handler, handling the error of the actual inner
 /// handler.
@@ -32,27 +40,45 @@ pub async fn on_room_message_inner(
 	event: OriginalSyncRoomMessageEvent,
 	room: Room,
 	client: Client,
-	_config: Ctx<Settings>,
+	config: Ctx<Settings>,
 ) -> Result<()> {
-	let room_name = room
-		.display_name()
-		.await
-		.ok()
-		.map(|display_name| display_name.to_string())
-		.or_else(|| room.name())
-		.unwrap_or_default();
+	let own_id = client.user_id().ok_or_else(|| eyre!("Couldn't get own user ID"))?;
+	if event.sender == own_id {
+		return Ok(());
+	}
 
-	let user = client
-		.get_joined_room(room.room_id())
-		.ok_or_else(|| eyre!("Got room event for not-joined room"))?
-		.get_member_no_sync(&event.sender)
-		.await?
-		.ok_or_else(|| eyre!("Got room event from not-joined room member"))?;
-	let user_name = user.display_name().unwrap_or_else(|| user.user_id().as_str());
+	let room = match room {
+		Room::Joined(room) => room,
+		_ => bail!("Received message from not-joined room"),
+	};
 
 	let msg = event.content.body();
+	tracing::trace!("{}: {msg}", event.sender);
 
-	tracing::trace!("[{room_name}] {user_name}: {msg}");
+	// Check if there is a command we need to react on
+	if let Some(arguments) = msg.strip_prefix('!') {
+		let mut arguments = parse_arguments(arguments);
+		arguments.insert(0, String::from("!"));
+		match Command::try_parse_from(arguments) {
+			Ok(command) => {
+				command
+					.execute(
+						&config,
+						&client,
+						&room,
+						&event.into_full_event(room.room_id().to_owned()),
+					)
+					.await?;
+			}
+			Err(error) => {
+				let message = RoomMessageEventContent::text_reply_plain(
+					error,
+					&event.into_full_event(room.room_id().to_owned()),
+				);
+				room.send(message, None).await?;
+			}
+		}
+	}
 
 	Ok(())
 }
