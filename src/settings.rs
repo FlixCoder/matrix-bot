@@ -3,6 +3,7 @@
 use std::{path::PathBuf, str::FromStr};
 
 use config::{ConfigError, Environment, File};
+use matrix_sdk::ruma::OwnedUserId;
 use serde::{de::Error, Deserialize, Deserializer};
 use tracing::Level;
 
@@ -56,9 +57,9 @@ pub struct LoginSettings {
 #[derive(Debug, Clone, Deserialize)]
 pub struct AccessSettings {
 	/// Admins (full access)
-	pub admins: Vec<String>,
+	pub admins: Vec<OwnedUserId>,
 	/// Moderators (execute commands only)
-	pub mods: Vec<String>,
+	pub mods: Vec<OwnedUserId>,
 }
 
 /// Deserializes `String` into `tracing::Level`
