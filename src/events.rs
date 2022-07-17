@@ -1,6 +1,7 @@
 //! Event handlers for matrix events.
 #![allow(clippy::unused_async)] // Matrix handlers are async
 
+use bonsaidb::local::AsyncDatabase;
 use clap::Parser;
 use color_eyre::{
 	eyre::{bail, eyre},
@@ -29,8 +30,9 @@ pub async fn on_room_message(
 	room: Room,
 	client: Client,
 	config: Ctx<Settings>,
+	db: Ctx<AsyncDatabase>,
 ) {
-	if let Err(err) = on_room_message_inner(event, room, client, config).await {
+	if let Err(err) = on_room_message_inner(event, room, client, config, db).await {
 		tracing::error!("Error in on_room_message handler: {err}");
 	}
 }
@@ -41,6 +43,7 @@ pub async fn on_room_message_inner(
 	room: Room,
 	client: Client,
 	config: Ctx<Settings>,
+	db: Ctx<AsyncDatabase>,
 ) -> Result<()> {
 	let own_id = client.user_id().ok_or_else(|| eyre!("Couldn't get own user ID"))?;
 	if event.sender == own_id {
@@ -60,10 +63,11 @@ pub async fn on_room_message_inner(
 		let mut arguments = parse_arguments(arguments);
 		arguments.insert(0, String::from("!"));
 		match Command::try_parse_from(arguments) {
-			Ok(command) => {
+			Ok(mut command) => {
 				command
 					.execute(
 						&config,
+						&db,
 						&client,
 						&room,
 						&event.into_full_event(room.room_id().to_owned()),

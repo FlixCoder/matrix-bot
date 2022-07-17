@@ -3,6 +3,7 @@
 mod leave;
 mod remind;
 
+use bonsaidb::local::AsyncDatabase;
 use clap::Parser;
 use color_eyre::Result;
 use matrix_sdk::{
@@ -16,7 +17,7 @@ use crate::settings::Settings;
 #[async_trait]
 trait BotCommand {
 	/// Execute the command.
-	async fn execute<'a>(&self, context: Context<'a>) -> Result<()>;
+	async fn execute<'a>(&mut self, context: Context<'a>) -> Result<()>;
 }
 
 /// The command the bot should execute.
@@ -32,7 +33,7 @@ pub enum Command {
 
 impl Command {
 	/// View the command as a trait object.
-	fn as_bot_command(&self) -> &(dyn BotCommand + Send + Sync) {
+	fn as_bot_command(&mut self) -> &mut (dyn BotCommand + Send + Sync) {
 		match self {
 			Command::Leave(cmd) => cmd,
 			Command::Remind(cmd) => cmd,
@@ -41,13 +42,14 @@ impl Command {
 
 	/// Execute the command.
 	pub async fn execute(
-		&self,
+		&mut self,
 		config: &Settings,
+		db: &AsyncDatabase,
 		client: &Client,
 		room: &Joined,
 		event: &OriginalRoomMessageEvent,
 	) -> Result<()> {
-		self.as_bot_command().execute(Context { config, client, room, event }).await
+		self.as_bot_command().execute(Context { config, db, client, room, event }).await
 	}
 }
 
@@ -56,6 +58,8 @@ impl Command {
 struct Context<'a> {
 	/// Configuration
 	pub config: &'a Settings,
+	/// Job runner database
+	pub db: &'a AsyncDatabase,
 	/// Matrix SDK Client
 	pub client: &'a Client,
 	/// Joined room

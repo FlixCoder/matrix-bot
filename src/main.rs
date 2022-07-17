@@ -13,6 +13,7 @@ async fn main() -> Result<()> {
 	let filter = EnvFilter::from_default_env()
 		.add_directive(config.log_level.into())
 		.add_directive("matrix_sdk=warn".parse()?)
+		.add_directive("bonsaimq=debug".parse()?)
 		.add_directive("hyper=info".parse()?)
 		.add_directive("mio=info".parse()?)
 		.add_directive("want=info".parse()?);

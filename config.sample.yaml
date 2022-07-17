@@ -8,8 +8,6 @@ login:
   user: some-user
   # Password
   password: some-password
-  # Location of state-store, i.e. folder to store encryption keys
-  state_store: "./data/state"
 # Access control to the bot.
 access:
   # Administrators with full access, including invite rights.
@@ -17,3 +15,9 @@ access:
     - "@some-use:matrix.org"
   # Moderators with access to using commands only.
   mods: []
+# Store paths
+store:
+  # Location of matrix state-store.
+  state_store: "./data/state"
+  # Path of job runner database.
+  job_runner_db: "./data/jobs"

@@ -17,6 +17,8 @@ pub struct Settings {
 	pub login: LoginSettings,
 	/// Persons who have access to the bot.
 	pub access: AccessSettings,
+	/// Store information.
+	pub store: StoreSettings,
 }
 
 impl Settings {
@@ -48,11 +50,8 @@ pub struct LoginSettings {
 	pub user: String,
 	/// Password.
 	pub password: String,
-	/// Location of state-store
-	pub state_store: PathBuf,
 }
 
-// TODO: Use MXIDs.
 /// Access control settings
 #[derive(Debug, Clone, Deserialize)]
 pub struct AccessSettings {
@@ -60,6 +59,15 @@ pub struct AccessSettings {
 	pub admins: Vec<OwnedUserId>,
 	/// Moderators (execute commands only)
 	pub mods: Vec<OwnedUserId>,
+}
+
+/// Store paths.
+#[derive(Debug, Clone, Deserialize)]
+pub struct StoreSettings {
+	/// Location of matrix state-store.
+	pub state_store: PathBuf,
+	/// Location of job runner database.
+	pub job_runner_db: PathBuf,
 }
 
 /// Deserializes `String` into `tracing::Level`

@@ -2,22 +2,28 @@
 
 mod commands;
 mod events;
+mod jobs;
 mod matrix;
 mod matrix_fix;
 pub mod settings;
 
 use std::sync::{Arc, Barrier};
 
+use bonsaidb::local::{
+	config::{Builder, StorageConfiguration},
+	AsyncDatabase,
+};
+use bonsaimq::{JobRunner, MessageQueueSchema};
 use color_eyre::Result;
 use matrix_sdk::{config::SyncSettings, store::StateStore, Client};
 use settings::Settings;
 
-use crate::matrix::get_unique_members;
+use crate::{jobs::JobRegistry, matrix::get_unique_members};
 
 /// Log into matrix account.
 async fn login(config: &Settings) -> Result<Client> {
 	tracing::debug!("Opening state store..");
-	let state_store = StateStore::open_with_path(&config.login.state_store)?;
+	let state_store = StateStore::open_with_path(&config.store.state_store)?;
 
 	tracing::debug!("Logging in..");
 	let client = Client::builder()
@@ -69,8 +75,8 @@ async fn process_invites(config: &Settings, client: &Client) -> Result<()> {
 	Ok(())
 }
 
-/// Run the matrix sync event loop.
-async fn matrix_run(config: Settings, client: Client) -> Result<()> {
+/// Run the matrix setup and sync event loop.
+async fn matrix_run(config: Settings, db: AsyncDatabase, client: Client) -> Result<()> {
 	tracing::debug!("Initial sync..");
 	client.sync_once(SyncSettings::default()).await?;
 
@@ -78,6 +84,7 @@ async fn matrix_run(config: Settings, client: Client) -> Result<()> {
 	process_invites(&config, &client).await?;
 
 	client.register_event_handler_context(config);
+	client.register_event_handler_context(db);
 	client.register_event_handler(events::on_invite_event).await;
 	client.register_event_handler(events::on_room_membership_event).await;
 	client.register_event_handler(events::on_room_message).await;
@@ -101,8 +108,15 @@ pub async fn run(config: Settings) -> Result<()> {
 		stopper.wait();
 	})?;
 
+	let db = AsyncDatabase::open::<MessageQueueSchema>(StorageConfiguration::new(
+		&config.store.job_runner_db,
+	))
+	.await?;
 	let client = login(&config).await?;
-	let sync_handle = tokio::spawn(matrix_run(config, client));
+
+	let sync_handle = tokio::spawn(matrix_run(config.clone(), db.clone(), client.clone()));
+	let _job_runner_handle =
+		JobRunner::new(db).set_context(Arc::new(config)).set_context(client).run::<JobRegistry>();
 
 	tokio::task::block_in_place(move || stop_barrier.wait());
 
