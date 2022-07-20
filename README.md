@@ -1,10 +1,17 @@
 # Matrix Bot
 
-My Matrix Bot.
+My Matrix Bot. It can join, leave and remind.
 
 ## Usage
 
-TODO
+Copy `config.sample.yaml` to `config.yaml` and run with `cargo run`. You can also use `APP__LOGIN__PASSWORD` for providing the password (and similar the respective environment variable for the other config options).
+
+Alternatively, there is the possibility to build the docker image and use it for running:
+
+```bash
+docker build . -t yourtagname
+docker run --rm -v /path/to/config:/opt/app/config.yaml yourtagname
+```
 
 ## Lints
 
