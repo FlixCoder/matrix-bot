@@ -11,6 +11,8 @@ Alternatively, there is the possibility to build the docker image and use it for
 ```bash
 docker build . -t yourtagname
 docker run --rm -v /path/to/config:/opt/app/config.yaml yourtagname
+# or use mine:
+docker run --rm -v /path/to/config:/opt/app/config.yaml flixcoder/matrix-bot
 ```
 
 ## Lints
