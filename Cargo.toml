@@ -15,6 +15,7 @@ ctrlc = {version = "3.2.2", features = ["termination"]}
 dotenv = "0.15.0"
 matrix-sdk = {git = "https://github.com/matrix-org/matrix-rust-sdk.git", rev = "47cfac7f4c35b395b5ccd4cf7b6cdb7f12e7562a", features = ["eyre", "markdown"]}
 serde = {version = "1.0.138", features = ["derive"]}
+time = { version = "0.3.11", features = ["parsing"] }
 tokio = {version = "1.19.2", features = ["full"]}
 tracing = "0.1.35"
 tracing-futures = "0.2.5"

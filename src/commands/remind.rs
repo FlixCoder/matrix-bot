@@ -1,11 +1,14 @@
 //! The remind command.
 
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use bonsaimq::JobRegister;
 use clap::Args;
-use color_eyre::eyre::eyre;
-use matrix_sdk::{async_trait, ruma::OwnedUserId};
+use matrix_sdk::{
+	async_trait,
+	ruma::{events::room::message::RoomMessageEventContent, OwnedUserId},
+};
+use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
 use super::{BotCommand, Context};
 use crate::jobs::{remind::RemindInput, JobRegistry};
@@ -16,17 +19,30 @@ pub struct Remind {
 	/// Who to remind (MXID) or reminds yourself if not given.
 	#[clap(value_parser, short, long)]
 	who: Option<OwnedUserId>,
-	/// Duration to wait until reminding (e.g "5:30" for remind in 5 hours and
-	/// 30 minutes).
+	/// When to remind. Can be either a duration to wait until reminding (e.g
+	/// "5:30" for remind in 5 hours and 30 minutes) or a specific date-time
+	/// when it should happen in RFC3339 format.
 	#[clap(value_parser = parse_when)]
-	when: Duration,
-	/// Reminder message
+	when: OffsetDateTime,
+	/// Reminder message.
 	#[clap(value_parser)]
 	message: String,
 }
 
-/// Parse "when" string into a [`Duration`].
-fn parse_when(s: &str) -> Result<Duration, String> {
+/// Parse "when" string into a specific date-time to execute the reminder.
+fn parse_when(s: &str) -> Result<OffsetDateTime, String> {
+	if let Ok(when) = OffsetDateTime::parse(s, &Rfc3339) {
+		Ok(when)
+	} else {
+		let now = OffsetDateTime::now_utc();
+		let when_duration = parse_when_duration(s)?;
+		Ok(now + when_duration)
+	}
+}
+
+/// Parse the when string as a [`Duration`] in the format of `%h:%m` or just
+/// `%m`.
+fn parse_when_duration(s: &str) -> Result<Duration, String> {
 	match s.split_once(':') {
 		Some((hours, minutes)) => {
 			let hours: u32 = hours.parse().map_err(|_| format!("`{hours}` is not a number!"))?;
@@ -60,17 +76,10 @@ impl BotCommand for Remind {
 			context.event.sender.clone()
 		};
 
+		let delay = Duration::try_from(self.when - OffsetDateTime::now_utc()).unwrap_or_default();
 		let room_id = context.room.room_id().to_owned();
-
-		let message_time = context
-			.event
-			.origin_server_ts
-			.to_system_time()
-			.ok_or_else(|| eyre!("Could not get SystemTime of message timestamp"))?;
-		let processing_delay = SystemTime::now().duration_since(message_time)?;
-		let delay = self.when.saturating_sub(processing_delay);
-
 		let remind_input = RemindInput { who, room_id, message: self.message.clone() };
+
 		JobRegistry::Remind
 			.builder()
 			.delay(delay)
@@ -79,6 +88,12 @@ impl BotCommand for Remind {
 			.await?;
 
 		tracing::trace!("Scheduled reminder message.");
+		let scheduled_msg = RoomMessageEventContent::text_reply_plain(
+			"Successfully scheduled reminder.",
+			context.event,
+		);
+		context.room.send(scheduled_msg, None).await?;
+
 		Ok(())
 	}
 }
