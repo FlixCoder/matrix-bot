@@ -14,12 +14,12 @@ use matrix_sdk::{
 		member::{MembershipState, StrippedRoomMemberEvent, SyncRoomMemberEvent},
 		message::{OriginalSyncRoomMessageEvent, RoomMessageEventContent},
 	},
-	Client, RoomType,
+	Client,
 };
 
 use crate::{
 	commands::{parse_arguments, Command},
-	matrix::get_unique_members,
+	matrix::{accept_invitation_no_wait, get_unique_members, reject_invitation_no_wait, ClientExt},
 	settings::Settings,
 };
 
@@ -111,29 +111,26 @@ async fn on_invite_inner(
 		return Ok(());
 	}
 
-	match event.content.membership {
-		MembershipState::Invite if room.room_type() == RoomType::Invited => {
-			let invited = &event.state_key;
-			if invited != own_id {
-				return Ok(());
-			}
+	if event.content.membership != MembershipState::Invite {
+		return Ok(());
+	}
 
-			let room_name = room.name().unwrap_or_else(|| room.room_id().to_string());
-			tracing::debug!("Received invite for room {room_name}");
+	let invited = &event.state_key;
+	if invited != own_id {
+		return Ok(());
+	}
 
-			let invite = client
-				.get_invited_room(room.room_id())
-				.ok_or_else(|| eyre!("Got invite for room which isn't listed in client"))?;
+	if let Room::Invited(room) = room {
+		let room_name = room.name().unwrap_or_else(|| room.room_id().to_string());
+		tracing::debug!("Received invite for room {room_name}");
 
-			if config.access.admins.contains(&event.sender) {
-				tracing::info!("Joining room {room_name}");
-				invite.accept_invitation().await?;
-			} else {
-				tracing::info!("Rejecting invitation to {room_name} from {}", event.sender);
-				invite.reject_invitation().await?;
-			}
+		if config.access.admins.contains(&event.sender) {
+			tracing::info!("Joining room {room_name}");
+			accept_invitation_no_wait(&client, &room).await?;
+		} else {
+			tracing::info!("Rejecting invitation to {room_name} from {}", event.sender);
+			reject_invitation_no_wait(&client, &room).await?;
 		}
-		_ => {}
 	}
 	Ok(())
 }
@@ -169,12 +166,12 @@ async fn on_room_membership_inner(
 			// Leave if nobody in the room anymore
 			let members = room.active_members_no_sync().await?;
 			if get_unique_members(&members) <= 1 {
-				tracing::info!("Leaving room {} ({})", room.display_name().await?, room.room_id());
-				client
-					.get_joined_room(room.room_id())
-					.ok_or_else(|| eyre!("Got leave room event for not-joined room"))?
-					.leave()
-					.await?;
+				tracing::info!(
+					"Leaving empty room {} ({})",
+					room.display_name().await?,
+					room.room_id()
+				);
+				client.leave_room_by_id_no_wait(room.room_id()).await?;
 			}
 		}
 		_ => {}
