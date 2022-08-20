@@ -1,6 +1,8 @@
 # Logging level.
 log_level: TRACE
-# Login information
+# Matrix request timeout (in seconds).
+request_timeout: 10
+# Login information.
 login:
   # Homeserver
   home_server: https://matrix.org
@@ -19,5 +21,7 @@ access:
 store:
   # Location of matrix state-store.
   state_store: "./data/state"
+  # Passphrase of the matrix state-store.
+  passphrase: "password"
   # Path of job runner database.
   job_runner_db: "./data/jobs"

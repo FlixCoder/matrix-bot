@@ -4,10 +4,12 @@ mod commands;
 mod events;
 mod jobs;
 mod matrix;
-mod matrix_fix;
 pub mod settings;
 
-use std::sync::{Arc, Barrier};
+use std::{
+	sync::{Arc, Barrier},
+	time::Duration,
+};
 
 use bonsaidb::local::{
 	config::{Builder, StorageConfiguration},
@@ -15,22 +17,30 @@ use bonsaidb::local::{
 };
 use bonsaimq::{JobRunner, MessageQueueSchema};
 use color_eyre::Result;
-use matrix_sdk::{config::SyncSettings, store::StateStore, Client};
+use matrix_sdk::{
+	config::{RequestConfig, SyncSettings},
+	Client,
+};
 use settings::Settings;
 
-use crate::{jobs::JobRegistry, matrix::get_unique_members};
+use crate::{
+	jobs::JobRegistry,
+	matrix::{accept_invitation_no_wait, get_unique_members, reject_invitation_no_wait, ClientExt},
+};
 
 /// Log into matrix account.
 async fn login(config: &Settings) -> Result<Client> {
 	tracing::debug!("Opening state store..");
-	let state_store = StateStore::open_with_path(&config.store.state_store)?;
-
-	tracing::debug!("Logging in..");
 	let client = Client::builder()
+		.request_config(
+			RequestConfig::short_retry().timeout(Duration::from_secs(config.request_timeout)),
+		)
 		.homeserver_url(&config.login.home_server)
-		.state_store(state_store)
+		.sled_store(&config.store.state_store, Some(config.store.passphrase.as_str()))?
 		.build()
 		.await?;
+
+	tracing::debug!("Logging in..");
 	client
 		.login_username(&config.login.user, &config.login.password)
 		.initial_device_display_name("Matrix-Bot")
@@ -48,7 +58,7 @@ async fn leave_empty_rooms(client: &Client) -> Result<()> {
 		let members = room.active_members().await?;
 		if get_unique_members(&members) <= 1 {
 			tracing::info!("Leaving room {} ({})", room.display_name().await?, room.room_id());
-			room.leave().await?;
+			client.leave_room_by_id_no_wait(room.room_id()).await?;
 		}
 	}
 	Ok(())
@@ -59,16 +69,14 @@ async fn process_invites(config: &Settings, client: &Client) -> Result<()> {
 	tracing::debug!("Checking room invites..");
 	for room in client.invited_rooms() {
 		let room_name = room.name().unwrap_or_else(|| room.room_id().to_string());
-		// TODO: Do this instead when <https://github.com/matrix-org/matrix-rust-sdk/issues/833> is resolved.
-		//if let Some(inviter) = room.invite_details().await?.inviter {
-		//let inviter = inviter.user_id().to_owned();
-		if let Some(inviter) = matrix_fix::invite_get_sender(&room).await? {
+		if let Some(inviter) = room.invite_details().await?.inviter {
+			let inviter = inviter.user_id().to_owned();
 			if config.access.admins.contains(&inviter) {
 				tracing::info!("Joining room {room_name}");
-				room.accept_invitation().await?;
+				accept_invitation_no_wait(client, &room).await?;
 			} else {
 				tracing::info!("Rejecting invitation to {room_name} from {inviter}");
-				room.reject_invitation().await?;
+				reject_invitation_no_wait(client, &room).await?;
 			}
 		}
 	}
@@ -83,11 +91,11 @@ async fn matrix_run(config: Settings, db: AsyncDatabase, client: Client) -> Resu
 	leave_empty_rooms(&client).await?;
 	process_invites(&config, &client).await?;
 
-	client.register_event_handler_context(config);
-	client.register_event_handler_context(db);
-	client.register_event_handler(events::on_invite_event).await;
-	client.register_event_handler(events::on_room_membership_event).await;
-	client.register_event_handler(events::on_room_message).await;
+	client.add_event_handler_context(config);
+	client.add_event_handler_context(db);
+	client.add_event_handler(events::on_invite_event);
+	client.add_event_handler(events::on_room_membership_event);
+	client.add_event_handler(events::on_room_message);
 
 	tracing::info!("Running continuous sync..");
 	let sync_settings = client

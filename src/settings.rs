@@ -10,10 +10,12 @@ use tracing::Level;
 /// This app's configuration
 #[derive(Debug, Clone, Deserialize)]
 pub struct Settings {
-	/// Logging level
+	/// Logging level.
 	#[serde(deserialize_with = "deserialize_log_level")]
 	pub log_level: Level,
-	/// Matrix login information
+	/// Matrix request timeout (in seconds).
+	pub request_timeout: u64,
+	/// Matrix login information.
 	pub login: LoginSettings,
 	/// Persons who have access to the bot.
 	pub access: AccessSettings,
@@ -66,6 +68,8 @@ pub struct AccessSettings {
 pub struct StoreSettings {
 	/// Location of matrix state-store.
 	pub state_store: PathBuf,
+	/// Passphrase of the matrix state-store.
+	pub passphrase: String,
 	/// Location of job runner database.
 	pub job_runner_db: PathBuf,
 }
