@@ -55,6 +55,18 @@ pub async fn on_room_message_inner(
 		_ => bail!("Received message from not-joined room"),
 	};
 
+	// Ignore messages from before joining.
+	let joined_ts = room
+		.get_member_no_sync(own_id)
+		.await?
+		.ok_or_else(|| eyre!("Couldn't get own join event"))?
+		.event()
+		.origin_server_ts()
+		.ok_or_else(|| eyre!("Own join event does not have timestamp"))?;
+	if event.origin_server_ts < joined_ts {
+		return Ok(());
+	}
+
 	let msg = event.content.body();
 	tracing::trace!("{}: {msg}", event.sender);
 
