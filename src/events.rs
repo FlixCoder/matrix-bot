@@ -19,7 +19,7 @@ use matrix_sdk::{
 
 use crate::{
 	commands::{parse_arguments, Command},
-	matrix::{accept_invitation_no_wait, get_unique_members, reject_invitation_no_wait, ClientExt},
+	matrix::{accept_invitation_no_wait, reject_invitation_no_wait, ClientExt},
 	settings::Settings,
 };
 
@@ -176,8 +176,8 @@ async fn on_room_membership_inner(
 	match event.membership() {
 		MembershipState::Leave => {
 			// Leave if nobody in the room anymore
-			let members = room.active_members_no_sync().await?;
-			if get_unique_members(&members) <= 1 {
+			let members = room.joined_user_ids().await?;
+			if members.len() <= 1 {
 				tracing::info!(
 					"Leaving empty room {} ({})",
 					room.display_name().await?,
