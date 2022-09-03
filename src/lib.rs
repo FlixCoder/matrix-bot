@@ -25,7 +25,7 @@ use settings::Settings;
 
 use crate::{
 	jobs::JobRegistry,
-	matrix::{accept_invitation_no_wait, get_unique_members, reject_invitation_no_wait, ClientExt},
+	matrix::{accept_invitation_no_wait, reject_invitation_no_wait, ClientExt},
 };
 
 /// Log into matrix account.
@@ -40,28 +40,19 @@ async fn login(config: &Settings) -> Result<Client> {
 		.build()
 		.await?;
 
-	tracing::debug!("Logging in..");
-	client
-		.login_username(&config.login.user, &config.login.password)
-		.initial_device_display_name("Matrix-Bot")
-		.send()
-		.await?;
+	tracing::debug!("Attempting to restore login..");
+	if !client.restore_session().await? {
+		tracing::debug!("No session data, attempting login instead..");
+		client
+			.login_username(&config.login.user, &config.login.password)
+			.initial_device_display_name("Matrix-Bot")
+			.send()
+			.await?;
+	}
 
 	tracing::info!("Logged in as {:?}", client.user_id());
+	client.save_session().await?;
 	Ok(client)
-}
-
-/// Leave empty rooms.
-async fn leave_empty_rooms(client: &Client) -> Result<()> {
-	tracing::debug!("Leaving empty rooms..");
-	for room in client.joined_rooms() {
-		let members = room.active_members().await?;
-		if get_unique_members(&members) <= 1 {
-			tracing::info!("Leaving room {} ({})", room.display_name().await?, room.room_id());
-			client.leave_room_by_id_no_wait(room.room_id()).await?;
-		}
-	}
-	Ok(())
 }
 
 /// Join rooms that we are invited to if the user is allowed to invite us.
@@ -88,7 +79,7 @@ async fn matrix_run(config: Settings, db: AsyncDatabase, client: Client) -> Resu
 	tracing::debug!("Initial sync..");
 	client.sync_once(SyncSettings::default()).await?;
 
-	leave_empty_rooms(&client).await?;
+	client.leave_empty_rooms().await?;
 	process_invites(&config, &client).await?;
 
 	client.add_event_handler_context(config);
@@ -123,13 +114,16 @@ pub async fn run(config: Settings) -> Result<()> {
 	let client = login(&config).await?;
 
 	let sync_handle = tokio::spawn(matrix_run(config.clone(), db.clone(), client.clone()));
-	let _job_runner_handle =
-		JobRunner::new(db).set_context(Arc::new(config)).set_context(client).run::<JobRegistry>();
+	let _job_runner_handle = JobRunner::new(db)
+		.set_context(Arc::new(config))
+		.set_context(client.clone())
+		.run::<JobRegistry>();
 
 	tokio::task::block_in_place(move || stop_barrier.wait());
 
 	tracing::info!("Stopping the client..");
-	sync_handle.abort();
+	client.save_session().await?;
 
+	sync_handle.abort();
 	Ok(())
 }

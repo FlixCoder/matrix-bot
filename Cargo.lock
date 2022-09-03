@@ -1666,6 +1666,7 @@ dependencies = [
  "dotenv",
  "matrix-sdk",
  "serde",
+ "serde_json",
  "time",
  "tokio",
  "tracing",
@@ -1676,7 +1677,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk"
 version = "0.5.0"
-source = "git+https://github.com/FlixCoder/matrix-rust-sdk.git?rev=2d34c66e99dea74a8b53309dcfb1eed77ea5930c#2d34c66e99dea74a8b53309dcfb1eed77ea5930c"
+source = "git+https://github.com/FlixCoder/matrix-rust-sdk.git?rev=7247bcf59b251ceb6cdfa342741f8e7efac755de#7247bcf59b251ceb6cdfa342741f8e7efac755de"
 dependencies = [
  "anymap2",
  "async-once-cell",
@@ -1712,7 +1713,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-base"
 version = "0.5.1"
-source = "git+https://github.com/FlixCoder/matrix-rust-sdk.git?rev=2d34c66e99dea74a8b53309dcfb1eed77ea5930c#2d34c66e99dea74a8b53309dcfb1eed77ea5930c"
+source = "git+https://github.com/FlixCoder/matrix-rust-sdk.git?rev=7247bcf59b251ceb6cdfa342741f8e7efac755de#7247bcf59b251ceb6cdfa342741f8e7efac755de"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1736,7 +1737,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-common"
 version = "0.5.0"
-source = "git+https://github.com/FlixCoder/matrix-rust-sdk.git?rev=2d34c66e99dea74a8b53309dcfb1eed77ea5930c#2d34c66e99dea74a8b53309dcfb1eed77ea5930c"
+source = "git+https://github.com/FlixCoder/matrix-rust-sdk.git?rev=7247bcf59b251ceb6cdfa342741f8e7efac755de#7247bcf59b251ceb6cdfa342741f8e7efac755de"
 dependencies = [
  "async-lock",
  "futures-core",
@@ -1752,7 +1753,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-crypto"
 version = "0.5.0"
-source = "git+https://github.com/FlixCoder/matrix-rust-sdk.git?rev=2d34c66e99dea74a8b53309dcfb1eed77ea5930c#2d34c66e99dea74a8b53309dcfb1eed77ea5930c"
+source = "git+https://github.com/FlixCoder/matrix-rust-sdk.git?rev=7247bcf59b251ceb6cdfa342741f8e7efac755de#7247bcf59b251ceb6cdfa342741f8e7efac755de"
 dependencies = [
  "aes",
  "async-trait",
@@ -1781,7 +1782,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-indexeddb"
 version = "0.1.0"
-source = "git+https://github.com/FlixCoder/matrix-rust-sdk.git?rev=2d34c66e99dea74a8b53309dcfb1eed77ea5930c#2d34c66e99dea74a8b53309dcfb1eed77ea5930c"
+source = "git+https://github.com/FlixCoder/matrix-rust-sdk.git?rev=7247bcf59b251ceb6cdfa342741f8e7efac755de#7247bcf59b251ceb6cdfa342741f8e7efac755de"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1806,7 +1807,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-sled"
 version = "0.1.0"
-source = "git+https://github.com/FlixCoder/matrix-rust-sdk.git?rev=2d34c66e99dea74a8b53309dcfb1eed77ea5930c#2d34c66e99dea74a8b53309dcfb1eed77ea5930c"
+source = "git+https://github.com/FlixCoder/matrix-rust-sdk.git?rev=7247bcf59b251ceb6cdfa342741f8e7efac755de#7247bcf59b251ceb6cdfa342741f8e7efac755de"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1831,7 +1832,7 @@ dependencies = [
 [[package]]
 name = "matrix-sdk-store-encryption"
 version = "0.1.0"
-source = "git+https://github.com/FlixCoder/matrix-rust-sdk.git?rev=2d34c66e99dea74a8b53309dcfb1eed77ea5930c#2d34c66e99dea74a8b53309dcfb1eed77ea5930c"
+source = "git+https://github.com/FlixCoder/matrix-rust-sdk.git?rev=7247bcf59b251ceb6cdfa342741f8e7efac755de#7247bcf59b251ceb6cdfa342741f8e7efac755de"
 dependencies = [
  "blake3",
  "chacha20poly1305",
@@ -2757,9 +2758,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.83"
+version = "1.0.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38dd04e3c8279e75b31ef29dbdceebfe5ad89f4d0937213c53f7d49d01b3d5a7"
+checksum = "e55a28e3aaef9d5ce0506d0a14dbba8054ddc7e499ef522dd8b26859ec9d4a44"
 dependencies = [
  "itoa",
  "ryu",
