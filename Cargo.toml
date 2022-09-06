@@ -13,8 +13,7 @@ color-eyre = "0.6.1"
 config = "0.13.1"
 ctrlc = {version = "3.2.2", features = ["termination"]}
 dotenv = "0.15.0"
-matrix-sdk = {git = "https://github.com/FlixCoder/matrix-rust-sdk.git", rev = "7247bcf59b251ceb6cdfa342741f8e7efac755de", features = ["eyre", "markdown", "e2e-encryption", "sled"]}
-#matrix-sdk = {path = "../matrix-rust-sdk/crates/matrix-sdk", features = ["eyre", "markdown", "e2e-encryption", "sled"]}
+matrix-sdk = {git = "https://github.com/matrix-org/matrix-rust-sdk.git", rev = "b3f3d0a95e6cf480808179559f6682d1c2ebb1c2", features = ["eyre", "markdown", "e2e-encryption", "sled"]}
 serde = {version = "1.0.138", features = ["derive"]}
 serde_json = "1.0.85"
 time = {version = "0.3.11", features = ["parsing"]}

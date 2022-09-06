@@ -19,7 +19,7 @@ use matrix_sdk::{
 
 use crate::{
 	commands::{parse_arguments, Command},
-	matrix::{accept_invitation_no_wait, reject_invitation_no_wait, ClientExt},
+	matrix::{InvitedExt, JoinedExt},
 	settings::Settings,
 };
 
@@ -138,10 +138,10 @@ async fn on_invite_inner(
 
 		if config.access.admins.contains(&event.sender) {
 			tracing::info!("Joining room {room_name}");
-			accept_invitation_no_wait(&client, &room).await?;
+			room.accept_invitation_no_sync().await?;
 		} else {
 			tracing::info!("Rejecting invitation to {room_name} from {}", event.sender);
-			reject_invitation_no_wait(&client, &room).await?;
+			room.reject_invitation_no_sync().await?;
 		}
 	}
 	Ok(())
@@ -172,9 +172,14 @@ async fn on_room_membership_inner(
 		return Ok(());
 	}
 
+	let room = match room {
+		Room::Joined(joined) => joined,
+		_ => return Ok(()),
+	};
+
 	#[allow(clippy::single_match)] // More to come?
 	match event.membership() {
-		MembershipState::Leave => {
+		MembershipState::Leave | MembershipState::Ban => {
 			// Leave if nobody in the room anymore
 			let members = room.joined_user_ids().await?;
 			if members.len() <= 1 {
@@ -183,7 +188,7 @@ async fn on_room_membership_inner(
 					room.display_name().await?,
 					room.room_id()
 				);
-				client.leave_room_by_id_no_wait(room.room_id()).await?;
+				room.leave_no_sync().await?;
 			}
 		}
 		_ => {}
