@@ -25,7 +25,7 @@ use settings::Settings;
 
 use crate::{
 	jobs::JobRegistry,
-	matrix::{accept_invitation_no_wait, reject_invitation_no_wait, ClientExt},
+	matrix::{ClientExt, InvitedExt},
 };
 
 /// Log into matrix account.
@@ -64,10 +64,10 @@ async fn process_invites(config: &Settings, client: &Client) -> Result<()> {
 			let inviter = inviter.user_id().to_owned();
 			if config.access.admins.contains(&inviter) {
 				tracing::info!("Joining room {room_name}");
-				accept_invitation_no_wait(client, &room).await?;
+				room.accept_invitation_no_sync().await?;
 			} else {
 				tracing::info!("Rejecting invitation to {room_name} from {inviter}");
-				reject_invitation_no_wait(client, &room).await?;
+				room.reject_invitation_no_sync().await?;
 			}
 		}
 	}

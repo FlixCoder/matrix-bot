@@ -2,8 +2,7 @@
 
 use color_eyre::{eyre::eyre, Result as EyreResult};
 use matrix_sdk::{
-	async_trait,
-	room::Invited,
+	async_trait, room,
 	ruma::{
 		api::client::membership::{join_room_by_id, leave_room},
 		RoomId,
@@ -25,15 +24,17 @@ const SESSION_DEVICE_ID: &str = "SESSION_DEVICE_ID";
 pub trait ClientExt {
 	/// Leave empty rooms.
 	async fn leave_empty_rooms(&self) -> Result<()>;
-	/// Join a room without waiting for receiving the event in sync.
-	async fn join_room_by_id_no_wait(&self, room_id: &RoomId) -> Result<()>;
-	/// Leave a room without waiting for receiving the event in sync.
-	async fn leave_room_by_id_no_wait(&self, room_id: &RoomId) -> Result<()>;
 	/// Save the current session in the state store.
 	async fn save_session(&self) -> EyreResult<()>;
 	/// Restore login based on session in the state store. Returns whether the
 	/// was session was restored.
 	async fn restore_session(&self) -> EyreResult<bool>;
+	/// Join a room without waiting for receiving the event in sync. Prefer to
+	/// use the methods on the rooms to join the rooms!
+	async fn join_room_by_id_no_sync(&self, room_id: &RoomId) -> Result<()>;
+	/// Leave a room without waiting for receiving the event in sync. Prefer to
+	/// use the methods on the rooms to leave the rooms!
+	async fn leave_room_by_id_no_sync(&self, room_id: &RoomId) -> Result<()>;
 }
 
 #[async_trait]
@@ -44,23 +45,9 @@ impl ClientExt for Client {
 			let members = room.joined_user_ids().await?;
 			if members.len() <= 1 {
 				tracing::info!("Leaving room {} ({})", room.display_name().await?, room.room_id());
-				self.leave_room_by_id_no_wait(room.room_id()).await?;
+				room.leave_no_sync().await?;
 			}
 		}
-		Ok(())
-	}
-
-	#[inline]
-	async fn join_room_by_id_no_wait(&self, room_id: &RoomId) -> Result<()> {
-		let request = join_room_by_id::v3::Request::new(room_id);
-		self.send(request, None).await?;
-		Ok(())
-	}
-
-	#[inline]
-	async fn leave_room_by_id_no_wait(&self, room_id: &RoomId) -> Result<()> {
-		let request = leave_room::v3::Request::new(room_id);
-		self.send(request, None).await?;
 		Ok(())
 	}
 
@@ -129,16 +116,58 @@ impl ClientExt for Client {
 
 		Ok(true)
 	}
+
+	#[inline]
+	async fn join_room_by_id_no_sync(&self, room_id: &RoomId) -> Result<()> {
+		let request = join_room_by_id::v3::Request::new(room_id);
+		self.send(request, None).await?;
+		Ok(())
+	}
+
+	#[inline]
+	async fn leave_room_by_id_no_sync(&self, room_id: &RoomId) -> Result<()> {
+		let request = leave_room::v3::Request::new(room_id);
+		self.send(request, None).await?;
+		Ok(())
+	}
 }
 
-/// Accept the invitation without waiting for receiving the event in sync.
-#[inline]
-pub async fn accept_invitation_no_wait(client: &Client, room: &Invited) -> Result<()> {
-	client.join_room_by_id_no_wait(room.room_id()).await
+/// Extension on joined rooms.
+#[async_trait]
+pub trait JoinedExt {
+	/// Leave the room without waiting for the leave event to appear in the
+	/// sync.
+	async fn leave_no_sync(&self) -> Result<()>;
 }
 
-/// Reject the invitation without waiting for receiving the event in sync.
-#[inline]
-pub async fn reject_invitation_no_wait(client: &Client, room: &Invited) -> Result<()> {
-	client.leave_room_by_id_no_wait(room.room_id()).await
+#[async_trait]
+impl JoinedExt for room::Joined {
+	#[inline]
+	async fn leave_no_sync(&self) -> Result<()> {
+		self.client().leave_room_by_id_no_sync(self.room_id()).await
+	}
+}
+
+/// Extension on invited rooms.
+#[async_trait]
+pub trait InvitedExt {
+	/// Accept the invitation without waiting for the respective event to appear
+	/// in the sync.
+	async fn accept_invitation_no_sync(&self) -> Result<()>;
+	/// Reject the invitation without waiting for the respective event to appear
+	/// in the sync.
+	async fn reject_invitation_no_sync(&self) -> Result<()>;
+}
+
+#[async_trait]
+impl InvitedExt for room::Invited {
+	#[inline]
+	async fn accept_invitation_no_sync(&self) -> Result<()> {
+		self.client().join_room_by_id_no_sync(self.room_id()).await
+	}
+
+	#[inline]
+	async fn reject_invitation_no_sync(&self) -> Result<()> {
+		self.client().leave_room_by_id_no_sync(self.room_id()).await
+	}
 }
