@@ -19,26 +19,11 @@ use matrix_sdk::{
 
 use crate::{
 	commands::{parse_arguments, Command},
-	matrix::{InvitedExt, JoinedExt},
 	settings::Settings,
 };
 
-/// Matrix room message event handler, handling the error of the actual inner
-/// handler.
+/// Matrix room message event handler.
 pub async fn on_room_message(
-	event: OriginalSyncRoomMessageEvent,
-	room: Room,
-	client: Client,
-	config: Ctx<Settings>,
-	db: Ctx<AsyncDatabase>,
-) {
-	if let Err(err) = on_room_message_inner(event, room, client, config, db).await {
-		tracing::error!("Error in on_room_message handler: {err}");
-	}
-}
-
-/// Actual inner room message handler.
-pub async fn on_room_message_inner(
 	event: OriginalSyncRoomMessageEvent,
 	room: Room,
 	client: Client,
@@ -87,10 +72,8 @@ pub async fn on_room_message_inner(
 					.await?;
 			}
 			Err(error) => {
-				let message = RoomMessageEventContent::text_reply_plain(
-					error,
-					&event.into_full_event(room.room_id().to_owned()),
-				);
+				let message = RoomMessageEventContent::text_plain(error.to_string())
+					.make_reply_to(&event.into_full_event(room.room_id().to_owned()));
 				room.send(message, None).await?;
 			}
 		}
@@ -99,20 +82,8 @@ pub async fn on_room_message_inner(
 	Ok(())
 }
 
-/// Matrix invite event handler, handling the error of the actual inner handler.
+/// Matrix invite event handler.
 pub async fn on_invite_event(
-	event: StrippedRoomMemberEvent,
-	room: Room,
-	client: Client,
-	config: Ctx<Settings>,
-) {
-	if let Err(err) = on_invite_inner(event, room, client, config).await {
-		tracing::error!("Error in on_invite event handler: {err}");
-	}
-}
-
-/// Actual inner invite event handler.
-async fn on_invite_inner(
 	event: StrippedRoomMemberEvent,
 	room: Room,
 	client: Client,
@@ -138,30 +109,17 @@ async fn on_invite_inner(
 
 		if config.access.admins.contains(&event.sender) {
 			tracing::info!("Joining room {room_name}");
-			room.accept_invitation_no_sync().await?;
+			room.accept_invitation().await?;
 		} else {
 			tracing::info!("Rejecting invitation to {room_name} from {}", event.sender);
-			room.reject_invitation_no_sync().await?;
+			room.reject_invitation().await?;
 		}
 	}
 	Ok(())
 }
 
-/// Matrix room member event handler, handling the error of the actual inner
-/// handler.
+/// Matrix room member event handler.
 pub async fn on_room_membership_event(
-	event: SyncRoomMemberEvent,
-	room: Room,
-	client: Client,
-	config: Ctx<Settings>,
-) {
-	if let Err(err) = on_room_membership_inner(event, room, client, config).await {
-		tracing::error!("Error in on_invite event handler: {err}");
-	}
-}
-
-/// Actual inner room membership event handler.
-async fn on_room_membership_inner(
 	event: SyncRoomMemberEvent,
 	room: Room,
 	client: Client,
@@ -188,7 +146,7 @@ async fn on_room_membership_inner(
 					room.display_name().await?,
 					room.room_id()
 				);
-				room.leave_no_sync().await?;
+				room.leave().await?;
 			}
 		}
 		_ => {}

@@ -88,10 +88,8 @@ impl BotCommand for Remind {
 			.await?;
 
 		tracing::trace!("Scheduled reminder message.");
-		let scheduled_msg = RoomMessageEventContent::text_reply_plain(
-			"Successfully scheduled reminder.",
-			context.event,
-		);
+		let scheduled_msg = RoomMessageEventContent::text_plain("Successfully scheduled reminder.")
+			.make_reply_to(context.event);
 		context.room.send(scheduled_msg, None).await?;
 
 		Ok(())

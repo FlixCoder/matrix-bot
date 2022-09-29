@@ -23,10 +23,7 @@ use matrix_sdk::{
 };
 use settings::Settings;
 
-use crate::{
-	jobs::JobRegistry,
-	matrix::{ClientExt, InvitedExt},
-};
+use crate::{jobs::JobRegistry, matrix::ClientExt};
 
 /// Log into matrix account.
 async fn login(config: &Settings) -> Result<Client> {
@@ -64,10 +61,10 @@ async fn process_invites(config: &Settings, client: &Client) -> Result<()> {
 			let inviter = inviter.user_id().to_owned();
 			if config.access.admins.contains(&inviter) {
 				tracing::info!("Joining room {room_name}");
-				room.accept_invitation_no_sync().await?;
+				room.accept_invitation().await?;
 			} else {
 				tracing::info!("Rejecting invitation to {room_name} from {inviter}");
-				room.reject_invitation_no_sync().await?;
+				room.reject_invitation().await?;
 			}
 		}
 	}
@@ -94,7 +91,7 @@ async fn matrix_run(config: Settings, db: AsyncDatabase, client: Client) -> Resu
 		.await
 		.map(|sync_token| SyncSettings::default().token(sync_token))
 		.unwrap_or_default();
-	client.sync(sync_settings).await;
+	client.sync(sync_settings).await?;
 
 	Ok(())
 }
