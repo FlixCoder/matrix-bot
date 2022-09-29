@@ -1,14 +1,7 @@
 //! Matrix helper functions.
 
 use color_eyre::{eyre::eyre, Result as EyreResult};
-use matrix_sdk::{
-	async_trait, room,
-	ruma::{
-		api::client::membership::{join_room_by_id, leave_room},
-		RoomId,
-	},
-	Client, Result, Session,
-};
+use matrix_sdk::{async_trait, Client, Result, Session};
 
 /// Session store key for access token.
 const SESSION_ACCESS_TOKEN: &str = "SESSION_ACCESS_TOKEN";
@@ -29,12 +22,6 @@ pub trait ClientExt {
 	/// Restore login based on session in the state store. Returns whether the
 	/// was session was restored.
 	async fn restore_session(&self) -> EyreResult<bool>;
-	/// Join a room without waiting for receiving the event in sync. Prefer to
-	/// use the methods on the rooms to join the rooms!
-	async fn join_room_by_id_no_sync(&self, room_id: &RoomId) -> Result<()>;
-	/// Leave a room without waiting for receiving the event in sync. Prefer to
-	/// use the methods on the rooms to leave the rooms!
-	async fn leave_room_by_id_no_sync(&self, room_id: &RoomId) -> Result<()>;
 }
 
 #[async_trait]
@@ -45,7 +32,7 @@ impl ClientExt for Client {
 			let members = room.joined_user_ids().await?;
 			if members.len() <= 1 {
 				tracing::info!("Leaving room {} ({})", room.display_name().await?, room.room_id());
-				room.leave_no_sync().await?;
+				room.leave().await?;
 			}
 		}
 		Ok(())
@@ -115,59 +102,5 @@ impl ClientExt for Client {
 		self.restore_login(session).await?;
 
 		Ok(true)
-	}
-
-	#[inline]
-	async fn join_room_by_id_no_sync(&self, room_id: &RoomId) -> Result<()> {
-		let request = join_room_by_id::v3::Request::new(room_id);
-		self.send(request, None).await?;
-		Ok(())
-	}
-
-	#[inline]
-	async fn leave_room_by_id_no_sync(&self, room_id: &RoomId) -> Result<()> {
-		let request = leave_room::v3::Request::new(room_id);
-		self.send(request, None).await?;
-		Ok(())
-	}
-}
-
-/// Extension on joined rooms.
-#[async_trait]
-pub trait JoinedExt {
-	/// Leave the room without waiting for the leave event to appear in the
-	/// sync.
-	async fn leave_no_sync(&self) -> Result<()>;
-}
-
-#[async_trait]
-impl JoinedExt for room::Joined {
-	#[inline]
-	async fn leave_no_sync(&self) -> Result<()> {
-		self.client().leave_room_by_id_no_sync(self.room_id()).await
-	}
-}
-
-/// Extension on invited rooms.
-#[async_trait]
-pub trait InvitedExt {
-	/// Accept the invitation without waiting for the respective event to appear
-	/// in the sync.
-	async fn accept_invitation_no_sync(&self) -> Result<()>;
-	/// Reject the invitation without waiting for the respective event to appear
-	/// in the sync.
-	async fn reject_invitation_no_sync(&self) -> Result<()>;
-}
-
-#[async_trait]
-impl InvitedExt for room::Invited {
-	#[inline]
-	async fn accept_invitation_no_sync(&self) -> Result<()> {
-		self.client().join_room_by_id_no_sync(self.room_id()).await
-	}
-
-	#[inline]
-	async fn reject_invitation_no_sync(&self) -> Result<()> {
-		self.client().leave_room_by_id_no_sync(self.room_id()).await
 	}
 }
