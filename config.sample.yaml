@@ -25,3 +25,5 @@ store:
   passphrase: "password"
   # Path of job runner database.
   job_runner_db: "./data/jobs"
+  # Path of the bot's database.
+  database: "./data/bot"
