@@ -3,7 +3,6 @@
 mod leave;
 mod remind;
 
-use bonsaidb::local::AsyncDatabase;
 use clap::Parser;
 use color_eyre::Result;
 use matrix_sdk::{
@@ -11,7 +10,7 @@ use matrix_sdk::{
 };
 
 use self::{leave::Leave, remind::Remind};
-use crate::settings::Settings;
+use crate::{database::Databases, settings::Settings};
 
 /// The trait every command implements. This is used for executing the command.
 #[async_trait]
@@ -44,7 +43,7 @@ impl Command {
 	pub async fn execute(
 		&mut self,
 		config: &Settings,
-		db: &AsyncDatabase,
+		db: &Databases,
 		client: &Client,
 		room: &Joined,
 		event: &OriginalRoomMessageEvent,
@@ -54,12 +53,12 @@ impl Command {
 }
 
 /// Command context
-#[allow(dead_code)] // Context will be used later.
+#[allow(dead_code)] // Available context will be used later.
 struct Context<'a> {
 	/// Configuration
 	pub config: &'a Settings,
 	/// Job runner database
-	pub db: &'a AsyncDatabase,
+	pub db: &'a Databases,
 	/// Matrix SDK Client
 	pub client: &'a Client,
 	/// Joined room

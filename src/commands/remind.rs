@@ -84,7 +84,7 @@ impl BotCommand for Remind {
 			.builder()
 			.delay(delay)
 			.payload_json(remind_input)?
-			.spawn(context.db)
+			.spawn(&context.db.jobs)
 			.await?;
 
 		tracing::trace!("Scheduled reminder message.");

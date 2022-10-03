@@ -72,6 +72,8 @@ pub struct StoreSettings {
 	pub passphrase: String,
 	/// Location of job runner database.
 	pub job_runner_db: PathBuf,
+	/// Location of the bot's database.
+	pub database: PathBuf,
 }
 
 /// Deserializes `String` into `tracing::Level`

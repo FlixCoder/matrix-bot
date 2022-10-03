@@ -1,7 +1,5 @@
 //! Remind job.
 
-use std::sync::Arc;
-
 use bonsaimq::CurrentJob;
 use color_eyre::{eyre::eyre, Result};
 use matrix_sdk::{
@@ -9,8 +7,6 @@ use matrix_sdk::{
 	Client,
 };
 use serde::{Deserialize, Serialize};
-
-use crate::settings::Settings;
 
 /// The job's input.
 #[derive(Debug, Serialize, Deserialize)]
@@ -36,8 +32,6 @@ pub async fn job_remind(mut job: CurrentJob) -> Result<()> {
 
 /// Remind someone of something, inner job.
 async fn remind(job: &mut CurrentJob) -> Result<()> {
-	let _config: Arc<Settings> =
-		job.context().ok_or_else(|| eyre!("Expected settings in context"))?;
 	let client: Client = job.context().ok_or_else(|| eyre!("Expected matrix client in context"))?;
 	let input: RemindInput = job.payload_json().ok_or_else(|| eyre!("Expected job input"))??;
 

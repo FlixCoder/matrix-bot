@@ -1,5 +1,7 @@
 //! Main executable.
 
+use std::sync::Arc;
+
 use color_eyre::Result;
 use matrix_bot::settings::Settings;
 use tracing_subscriber::EnvFilter;
@@ -8,7 +10,7 @@ use tracing_subscriber::EnvFilter;
 async fn main() -> Result<()> {
 	color_eyre::install()?;
 	dotenv::dotenv().ok();
-	let config = Settings::read()?;
+	let config = Arc::new(Settings::read()?);
 
 	let filter = EnvFilter::from_default_env()
 		.add_directive(config.log_level.into())

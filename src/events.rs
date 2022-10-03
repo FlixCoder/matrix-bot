@@ -1,7 +1,8 @@
 //! Event handlers for matrix events.
 #![allow(clippy::unused_async)] // Matrix handlers are async
 
-use bonsaidb::local::AsyncDatabase;
+use std::sync::Arc;
+
 use clap::Parser;
 use color_eyre::{
 	eyre::{bail, eyre},
@@ -19,6 +20,7 @@ use matrix_sdk::{
 
 use crate::{
 	commands::{parse_arguments, Command},
+	database::Databases,
 	settings::Settings,
 };
 
@@ -27,8 +29,8 @@ pub async fn on_room_message(
 	event: OriginalSyncRoomMessageEvent,
 	room: Room,
 	client: Client,
-	config: Ctx<Settings>,
-	db: Ctx<AsyncDatabase>,
+	config: Ctx<Arc<Settings>>,
+	db: Ctx<Databases>,
 ) -> Result<()> {
 	let own_id = client.user_id().ok_or_else(|| eyre!("Couldn't get own user ID"))?;
 	if event.sender == own_id {
@@ -87,7 +89,7 @@ pub async fn on_invite_event(
 	event: StrippedRoomMemberEvent,
 	room: Room,
 	client: Client,
-	config: Ctx<Settings>,
+	config: Ctx<Arc<Settings>>,
 ) -> Result<()> {
 	let own_id = client.user_id().ok_or_else(|| eyre!("Couldn't get own user ID"))?;
 	if event.sender == own_id {
@@ -123,7 +125,6 @@ pub async fn on_room_membership_event(
 	event: SyncRoomMemberEvent,
 	room: Room,
 	client: Client,
-	_config: Ctx<Settings>,
 ) -> Result<()> {
 	let own_id = client.user_id().ok_or_else(|| eyre!("Couldn't get own user ID"))?;
 	if event.sender() == own_id {
