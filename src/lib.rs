@@ -3,6 +3,7 @@
 mod commands;
 mod database;
 mod events;
+mod intervals;
 mod jobs;
 mod matrix;
 pub mod settings;
@@ -73,6 +74,7 @@ async fn process_invites(config: &Settings, client: &Client) -> Result<()> {
 }
 
 /// Run the matrix setup and sync event loop.
+#[tracing::instrument(level = "debug", skip_all, err)]
 async fn matrix_run(config: Arc<Settings>, databases: Databases, client: Client) -> Result<()> {
 	tracing::debug!("Initial sync..");
 	client.sync_once(SyncSettings::default()).await?;
@@ -110,10 +112,11 @@ pub async fn run(config: Arc<Settings>) -> Result<()> {
 
 	let sync_handle = tokio::spawn(matrix_run(config.clone(), databases.clone(), client.clone()));
 	let _job_runner_handle = JobRunner::new(databases.jobs.clone())
-		.set_context(config)
-		.set_context(databases)
+		.set_context(config.clone())
+		.set_context(databases.clone())
 		.set_context(client.clone())
 		.run::<JobRegistry>();
+	let intervals_handle = tokio::spawn(intervals::run(config, databases, client.clone()));
 
 	tokio::task::block_in_place(move || stop_barrier.wait());
 
@@ -121,5 +124,6 @@ pub async fn run(config: Arc<Settings>) -> Result<()> {
 	client.save_session().await?;
 
 	sync_handle.abort();
+	intervals_handle.abort();
 	Ok(())
 }

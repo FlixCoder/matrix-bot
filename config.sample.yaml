@@ -27,3 +27,7 @@ store:
   job_runner_db: "./data/jobs"
   # Path of the bot's database.
   database: "./data/bot"
+# Intervalled execution configuration.
+intervals:
+  # Number of seconds of the interval duration for RSS feed checks.
+  rss: 300
