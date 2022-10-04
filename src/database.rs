@@ -1,7 +1,15 @@
 //! The bot's database.
 
+use std::collections::BTreeMap;
+
 use bonsaidb::{
-	core::schema::Schema,
+	core::{
+		connection::AsyncConnection,
+		document::{CollectionDocument, DocumentId, Emit},
+		schema::{
+			Collection, CollectionViewSchema, Schema, SerializedCollection, View, ViewMapResult,
+		},
+	},
 	local::{
 		config::{Builder, StorageConfiguration},
 		AsyncDatabase,
@@ -9,6 +17,10 @@ use bonsaidb::{
 };
 use bonsaimq::MessageQueueSchema;
 use color_eyre::Result;
+use matrix_sdk::ruma::{OwnedRoomId, RoomId};
+use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
+use url::Url;
 
 use crate::settings::Settings;
 
@@ -34,5 +46,79 @@ pub struct Databases {
 
 /// The bot's database schema for saving state.
 #[derive(Debug, Schema)]
-#[schema(name = "matrix_bot", collections = [])]
+#[schema(name = "matrix_bot", collections = [RssSubscription])]
 pub struct BotSchema;
+
+/// Document entry for one RSS subscription.
+#[derive(Debug, Clone, Serialize, Deserialize, Collection)]
+#[collection(name = "rss_subscriptions", views = [RssSubByRoom])]
+pub struct RssSubscription {
+	/// Matrix room ID for the subscription.
+	pub room: OwnedRoomId,
+	/// Feed URL.
+	pub url: Url,
+	/// Latest update posted into the room.
+	pub latest_update: OffsetDateTime,
+}
+
+impl RssSubscription {
+	/// Create a new RSS subscription for the current time.
+	pub fn new(room: OwnedRoomId, url: Url) -> Self {
+		Self { room, url, latest_update: OffsetDateTime::now_utc() }
+	}
+
+	/// Get RSS subscriptions for a specific room.
+	pub async fn for_room(
+		room: &RoomId,
+		db: &AsyncDatabase,
+	) -> Result<BTreeMap<DocumentId, CollectionDocument<Self>>, bonsaidb::core::Error> {
+		let subscriptions = db
+			.view::<RssSubByRoom>()
+			.with_key(room.to_string())
+			.query_with_collection_docs()
+			.await?
+			.documents;
+		Ok(subscriptions)
+	}
+
+	/// Find a RSS subscription by room ID and URL.
+	pub async fn find(
+		room: &RoomId,
+		url: &Url,
+		db: &AsyncDatabase,
+	) -> Result<Option<CollectionDocument<Self>>, bonsaidb::core::Error> {
+		Ok(Self::for_room(room, db).await?.into_values().find(|doc| doc.contents.url == *url))
+	}
+
+	/// Insert the given RSS subscription into the database.
+	pub async fn insert(self, db: &AsyncDatabase) -> Result<(), bonsaidb::core::Error> {
+		if let Some(mut current) = Self::find(&self.room, &self.url, db).await? {
+			current.contents.latest_update = self.latest_update;
+			current.update_async(db).await?;
+		} else {
+			self.push_into_async(db).await?;
+		}
+		Ok(())
+	}
+}
+
+/// View on RSS subscriptions by room ID.
+#[derive(Debug, Clone, View)]
+#[view(collection = RssSubscription, name = "rss_subscriptions_by_room", key = String, value = ())]
+pub struct RssSubByRoom;
+
+impl CollectionViewSchema for RssSubByRoom {
+	type View = Self;
+
+	fn map(&self, document: CollectionDocument<RssSubscription>) -> ViewMapResult<Self::View> {
+		document.header.emit_key_and_value(document.contents.room.to_string(), ())
+	}
+
+	fn unique(&self) -> bool {
+		false
+	}
+
+	fn version(&self) -> u64 {
+		0
+	}
+}

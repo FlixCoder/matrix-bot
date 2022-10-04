@@ -21,6 +21,8 @@ pub struct Settings {
 	pub access: AccessSettings,
 	/// Store information.
 	pub store: StoreSettings,
+	/// Intervalled execution configuration.
+	pub intervals: IntervalSettings,
 }
 
 impl Settings {
@@ -74,6 +76,13 @@ pub struct StoreSettings {
 	pub job_runner_db: PathBuf,
 	/// Location of the bot's database.
 	pub database: PathBuf,
+}
+
+/// Intervals settings.
+#[derive(Debug, Clone, Deserialize)]
+pub struct IntervalSettings {
+	/// Number of seconds of the interval duration for RSS feed checks.
+	pub rss: u64,
 }
 
 /// Deserializes `String` into `tracing::Level`

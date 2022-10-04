@@ -2,6 +2,7 @@
 
 mod leave;
 mod remind;
+mod rss;
 
 use clap::Parser;
 use color_eyre::Result;
@@ -9,7 +10,7 @@ use matrix_sdk::{
 	async_trait, room::Joined, ruma::events::room::message::OriginalRoomMessageEvent, Client,
 };
 
-use self::{leave::Leave, remind::Remind};
+use self::{leave::Leave, remind::Remind, rss::Rss};
 use crate::{database::Databases, settings::Settings};
 
 /// The trait every command implements. This is used for executing the command.
@@ -28,6 +29,8 @@ pub enum Command {
 	/// Remind someone of something, i.e. sends a message at the specified point
 	/// in time.
 	Remind(Remind),
+	/// RSS feed configuration to receive notifications via RSS.
+	Rss(Rss),
 }
 
 impl Command {
@@ -36,6 +39,7 @@ impl Command {
 		match self {
 			Command::Leave(cmd) => cmd,
 			Command::Remind(cmd) => cmd,
+			Command::Rss(cmd) => cmd,
 		}
 	}
 
