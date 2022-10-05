@@ -26,13 +26,11 @@ enum SubCommand {
 	/// Enable new RSS feed.
 	Enable {
 		/// Full feed URL.
-		#[clap(value_parser)]
 		url: Url,
 	},
 	/// Disable RSS feed.
 	Disable {
 		/// Full feed URL.
-		#[clap(value_parser)]
 		url: Url,
 	},
 }

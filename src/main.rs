@@ -9,7 +9,7 @@ use tracing_subscriber::EnvFilter;
 #[tokio::main]
 async fn main() -> Result<()> {
 	color_eyre::install()?;
-	dotenv::dotenv().ok();
+	dotenvy::dotenv().ok();
 	let config = Arc::new(Settings::read()?);
 
 	let filter = EnvFilter::from_default_env()
