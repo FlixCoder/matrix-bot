@@ -17,15 +17,14 @@ use crate::jobs::{remind::RemindInput, JobRegistry};
 #[derive(Debug, Args)]
 pub struct Remind {
 	/// Who to remind (MXID) or reminds yourself if not given.
-	#[clap(value_parser, short, long)]
+	#[arg(short, long)]
 	who: Option<OwnedUserId>,
 	/// When to remind. Can be either a duration to wait until reminding (e.g
 	/// "5:30" for remind in 5 hours and 30 minutes) or a specific date-time
 	/// when it should happen in RFC3339 format.
-	#[clap(value_parser = parse_when)]
+	#[arg(value_parser = parse_when)]
 	when: OffsetDateTime,
 	/// Reminder message.
-	#[clap(value_parser)]
 	message: String,
 }
 

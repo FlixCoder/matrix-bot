@@ -22,7 +22,7 @@ trait BotCommand {
 
 /// The command the bot should execute.
 #[derive(Debug, Parser)]
-#[clap(name = "Matrix-Bot", author = "FlixCoder", version, about)]
+#[command(name = "Matrix-Bot", author = "FlixCoder", version, about)]
 pub enum Command {
 	/// Leave the room.
 	Leave(Leave),

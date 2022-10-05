@@ -8,11 +8,11 @@ version = "0.1.0"
 [dependencies]
 bonsaidb = {version = "0.4.1", features = ["local", "local-async", "local-instrument"]}
 bonsaimq = "0.2.0"
-clap = {version = "3.2.8", features = ["derive"]}
-color-eyre = "0.6.1"
-config = "0.13.1"
+clap = {version = "4.0.9", features = ["derive"]}
+color-eyre = "0.6.2"
+config = "0.13.2"
 ctrlc = {version = "3.2.2", features = ["termination"]}
-dotenv = "0.15.0"
+dotenvy = "0.15.5"
 feed-rs = "1.2.0"
 matrix-sdk = {version = "0.6.0", features = ["eyre", "markdown", "e2e-encryption", "sled"]}
 reqwest = "0.11.12"
@@ -20,7 +20,7 @@ serde = {version = "1.0.138", features = ["derive"]}
 serde_json = "1.0.85"
 time = {version = "0.3.11", features = ["parsing", "serde"]}
 tokio = {version = "1.19.2", features = ["full"]}
-tracing = "0.1.35"
+tracing = "0.1.36"
 tracing-futures = "0.2.5"
 tracing-subscriber = {version = "0.3.14", features = ["env-filter"]}
 url = { version = "2.3.1", features = ["serde"] }
