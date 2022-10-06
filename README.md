@@ -1,6 +1,10 @@
 # Matrix Bot
 
-My Matrix Bot. It can join, leave and remind.
+My Matrix Bot. It does the following things:
+- Post RSS notifications
+- Send reminder messages
+- Auto-join and leave rooms
+- Act on commands based on admin/mod status as configured in the config
 
 ## Usage
 
@@ -10,9 +14,9 @@ Alternatively, there is the possibility to build the docker image and use it for
 
 ```bash
 docker build . -t yourtagname
-docker run --rm -v /path/to/config:/opt/app/config.yaml yourtagname
+docker run --rm -v /path/to/config:/opt/app/config.yaml -v /path/to/data:/opt/app/data yourtagname
 # or use mine:
-docker run --rm -v /path/to/config:/opt/app/config.yaml flixcoder/matrix-bot
+docker run --rm -v /path/to/config:/opt/app/config.yaml -v /path/to/data:/opt/app/data flixcoder/matrix-bot
 ```
 
 ## Lints

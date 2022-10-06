@@ -30,4 +30,4 @@ store:
 # Intervalled execution configuration.
 intervals:
   # Number of seconds of the interval duration for RSS feed checks.
-  rss: 300
+  rss: 600
