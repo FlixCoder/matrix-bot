@@ -70,7 +70,7 @@ pub struct AccessSettings {
 pub struct StoreSettings {
 	/// Location of matrix state-store.
 	pub state_store: PathBuf,
-	/// Passphrase of the matrix state-store.
+	/// Passphrase of the state stores.
 	pub passphrase: String,
 	/// Location of job runner database.
 	pub job_runner_db: PathBuf,
