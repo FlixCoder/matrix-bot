@@ -21,7 +21,7 @@ access:
 store:
   # Location of matrix state-store.
   state_store: "./data/state"
-  # Passphrase of the matrix state-store.
+  # Passphrase of the state stores.
   passphrase: "password"
   # Path of job runner database.
   job_runner_db: "./data/jobs"

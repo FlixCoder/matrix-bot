@@ -6,7 +6,7 @@ My Matrix Bot. It does the following things:
 - Auto-join and leave rooms
 - Act on commands based on admin/mod status as configured in the config
 
-## Usage
+## Installation
 
 Copy `config.sample.yaml` to `config.yaml` and run with `cargo run`. You can also use `APP__LOGIN__PASSWORD` for providing the password (and similar the respective environment variable for the other config options).
 
@@ -18,6 +18,12 @@ docker run --rm -v /path/to/config:/opt/app/config.yaml -v /path/to/data:/opt/ap
 # or use mine:
 docker run --rm -v /path/to/config:/opt/app/config.yaml -v /path/to/data:/opt/app/data flixcoder/matrix-bot
 ```
+
+## Usage
+
+To interact with the bot, put yourself as admin into the config and then invite it to a room of your choice.
+
+You can type "!help" to run the help command. It should give an overview of how to use the commands and which commands are available.
 
 ## Lints
 

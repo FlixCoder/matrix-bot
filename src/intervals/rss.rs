@@ -47,7 +47,11 @@ async fn send_feed_messages(
 
 	for entry in new_entries {
 		let (message, body) = render_entry(entry);
-		let message = RoomMessageEventContent::text_html(body, message);
+		let message = if room.is_direct() {
+			RoomMessageEventContent::text_html(body, message)
+		} else {
+			RoomMessageEventContent::notice_html(body, message)
+		};
 		room.send(message, None).await?;
 	}
 	Ok(())
