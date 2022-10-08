@@ -1,5 +1,6 @@
 //! Crate library.
 
+mod clients;
 mod commands;
 mod database;
 mod events;
