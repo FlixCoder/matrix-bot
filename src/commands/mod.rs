@@ -1,5 +1,6 @@
 //! Bot command module.
 
+mod github;
 mod leave;
 mod remind;
 mod rss;
@@ -10,7 +11,7 @@ use matrix_sdk::{
 	async_trait, room::Joined, ruma::events::room::message::OriginalRoomMessageEvent, Client,
 };
 
-use self::{leave::Leave, remind::Remind, rss::Rss};
+use self::{github::Github, leave::Leave, remind::Remind, rss::Rss};
 use crate::{database::Databases, settings::Settings};
 
 /// The trait every command implements. This is used for executing the command.
@@ -31,6 +32,8 @@ pub enum Command {
 	Remind(Remind),
 	/// RSS feed configuration to receive notifications via RSS.
 	Rss(Rss),
+	/// Github notifications subscription configuration.
+	Github(Github),
 }
 
 impl Command {
@@ -40,6 +43,7 @@ impl Command {
 			Command::Leave(cmd) => cmd,
 			Command::Remind(cmd) => cmd,
 			Command::Rss(cmd) => cmd,
+			Command::Github(cmd) => cmd,
 		}
 	}
 
