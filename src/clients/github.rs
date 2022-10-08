@@ -3,7 +3,10 @@
 use std::time::Duration;
 
 use color_eyre::Result;
-use reqwest::{header, Client, StatusCode, Url};
+use reqwest::{
+	header::{self, HeaderMap},
+	Client, StatusCode, Url,
+};
 use serde::{Deserialize, Serialize};
 use time::{
 	format_description::well_known::{Rfc2822, Rfc3339},
@@ -32,15 +35,24 @@ pub struct Github {
 
 impl Github {
 	/// Create new Github client to the default API URL.
-	#[allow(clippy::expect_used)] // Used on a constant only
-	pub fn new(username: String, token: String) -> Self {
-		Self {
-			client: Client::new(),
-			base_url: API_URL.parse().expect("Constant URL must be correct!"),
+	pub fn new(username: String, token: String) -> Result<Self> {
+		let mut default_headers = HeaderMap::new();
+		default_headers.insert(header::USER_AGENT, USER_AGENT.parse()?);
+		let client = Client::builder().default_headers(default_headers).build()?;
+
+		Ok(Self {
+			client,
+			base_url: API_URL.parse()?,
 			user: username,
 			token,
 			allowed_request_time: OffsetDateTime::UNIX_EPOCH,
-		}
+		})
+	}
+
+	/// Set the token to the new value.
+	pub fn set_token(&mut self, token: String) -> &mut Self {
+		self.token = token;
+		self
 	}
 
 	/// Test a token for validity.
@@ -48,7 +60,6 @@ impl Github {
 		let _resp = self
 			.client
 			.head(self.base_url.join("notifications")?)
-			.header(header::USER_AGENT, USER_AGENT)
 			.basic_auth(&self.user, Some(&self.token))
 			.header(header::IF_MODIFIED_SINCE, OffsetDateTime::now_utc().format(&Rfc2822)?)
 			.send()
@@ -70,7 +81,6 @@ impl Github {
 		let response = self
 			.client
 			.get(self.base_url.join("notifications")?)
-			.header(header::USER_AGENT, USER_AGENT)
 			.basic_auth(&self.user, Some(&self.token))
 			.header(header::ACCEPT, "application/vnd.github+json")
 			.header(header::IF_MODIFIED_SINCE, since_rfc2822)
@@ -99,11 +109,11 @@ pub struct Notification {
 	/// ID.
 	pub id: String,
 	/// Last read at datetime.
-	#[serde(with = "time::serde::iso8601")]
-	pub last_read_at: OffsetDateTime,
+	#[serde(with = "time::serde::iso8601::option")]
+	pub last_read_at: Option<OffsetDateTime>,
 	/// Notification reason.
 	pub reason: NotificationReason,
-	/// Raw repository information. TODO: Make a struct for it.
+	/// Raw repository information.
 	pub repository: MinimalRepository,
 	/// Subject.
 	pub subject: Subject,
@@ -178,11 +188,11 @@ pub struct MinimalRepository {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Subject {
 	/// Last comment URL.
-	pub latest_comment_url: Url,
+	pub latest_comment_url: Option<Url>,
 	/// Title.
 	pub title: String,
 	/// Type.
 	pub r#type: String,
 	/// URL.
-	pub url: Url,
+	pub url: Option<Url>,
 }
