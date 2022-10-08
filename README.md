@@ -2,6 +2,7 @@
 
 My Matrix Bot. It does the following things:
 - Post RSS notifications
+- Post Github notifications
 - Send reminder messages
 - Auto-join and leave rooms
 - Act on commands based on admin/mod status as configured in the config

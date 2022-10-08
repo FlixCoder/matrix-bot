@@ -85,7 +85,7 @@ impl BotCommand for Github {
 			}
 
 			SubCommand::Enable { username, token } => {
-				let client = clients::github::Github::new(username.clone(), token.clone());
+				let client = clients::github::Github::new(username.clone(), token.clone())?;
 				if client.test_token().await.is_ok() {
 					let subscription = GithubSubscription::new(
 						context.room.room_id().to_owned(),

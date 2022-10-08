@@ -31,3 +31,6 @@ store:
 intervals:
   # Number of seconds of the interval duration for RSS feed checks.
   rss: 600
+  # Number of seconds of the interval duration for Github notification checks.
+  # Intervals may be skipped when rate-limiting is reached.
+  github: 300

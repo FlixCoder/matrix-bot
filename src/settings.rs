@@ -83,6 +83,9 @@ pub struct StoreSettings {
 pub struct IntervalSettings {
 	/// Number of seconds of the interval duration for RSS feed checks.
 	pub rss: u64,
+	/// Number of seconds of the interval duration for Github notification
+	/// checks. Intervals may be skipped when rate-limiting is reached.
+	pub github: u64,
 }
 
 /// Deserializes `String` into `tracing::Level`
