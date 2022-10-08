@@ -119,12 +119,14 @@ pub async fn run(config: Arc<Settings>) -> Result<()> {
 		.run::<JobRegistry>();
 	let intervals_handle = tokio::spawn(intervals::run(config, databases, client.clone()));
 
-	tokio::task::block_in_place(move || stop_barrier.wait());
+	let termination_waiter = tokio::task::spawn_blocking(move || stop_barrier.wait());
+	tokio::select! {
+		res = termination_waiter => { res?; },
+		res = sync_handle => res??,
+		res = intervals_handle => res?,
+	};
 
 	tracing::info!("Stopping the client..");
 	client.save_session().await?;
-
-	sync_handle.abort();
-	intervals_handle.abort();
 	Ok(())
 }
