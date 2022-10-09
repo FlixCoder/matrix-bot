@@ -57,7 +57,7 @@ pub async fn interval(db: &Databases, client: &Client, state: &mut IntervalState
 			let now = OffsetDateTime::now_utc();
 			let notifications =
 				github_client.notifications(subscription.contents.latest_update).await?;
-			send_notification_messages(&room, &notifications).await?;
+			send_notification_messages(&room, &notifications, github_client).await?;
 
 			subscription.contents.latest_update = now;
 			subscription.update_async(&db.state).await?;
@@ -69,9 +69,13 @@ pub async fn interval(db: &Databases, client: &Client, state: &mut IntervalState
 }
 
 /// Send messages for the notifications into the room.
-async fn send_notification_messages(room: &Joined, notifications: &[Notification]) -> Result<()> {
+async fn send_notification_messages(
+	room: &Joined,
+	notifications: &[Notification],
+	client: &Github,
+) -> Result<()> {
 	for notification in notifications {
-		let (html, body) = render_notification(notification);
+		let (html, body) = render_notification(client, notification).await?;
 		let message = if room.is_direct() {
 			RoomMessageEventContent::text_html(body, html)
 		} else {
@@ -83,19 +87,48 @@ async fn send_notification_messages(room: &Joined, notifications: &[Notification
 }
 
 /// Render a notification as body and html message.
-fn render_notification(notification: &Notification) -> (String, String) {
+async fn render_notification(
+	client: &Github,
+	notification: &Notification,
+) -> Result<(String, String)> {
 	let mut html = String::new();
 	let mut body = String::new();
 
 	html.push_str(&format!(
-		"<b>{}: {}</b><br>\n",
-		notification.subject.r#type, notification.subject.title
+		"<a href={}>{}</a><br>\n",
+		notification.repository.html_url, notification.repository.full_name
 	));
-	body.push_str(&format!("{}: {}\n", notification.subject.r#type, notification.subject.title));
+	body.push_str(&format!("{}\n", notification.repository.full_name));
+
+	if let Some(url) = notification.subject.latest_comment_url.clone() {
+		let comment = client.get_issue_comment_from(url).await?;
+		let html_url = comment.html_url;
+
+		html.push_str(&format!(
+			"<a href=\"{}\"><b>{}: {} ({})</b></a><br>\n",
+			html_url, notification.subject.r#type, notification.subject.title, notification.reason
+		));
+		body.push_str(&format!(
+			"{}: {} ({})\n",
+			notification.subject.r#type, notification.subject.title, notification.reason
+		));
+
+		html.push_str(&format!("{}: {}<br>\n", comment.user.login, comment.body));
+		body.push_str(&format!("{}: {}\n", comment.user.login, comment.body));
+	} else {
+		html.push_str(&format!(
+			"<b>{}: {} ({})</b><br>\n",
+			notification.subject.r#type, notification.subject.title, notification.reason
+		));
+		body.push_str(&format!(
+			"{}: {} ({})\n",
+			notification.subject.r#type, notification.subject.title, notification.reason
+		));
+	}
 
 	let url = "https://github.com/notifications";
 	html.push_str(&format!("<a href=\"{}\">{}</a>", url, "See notifications"));
 	body.push_str(url);
 
-	(html, body)
+	Ok((html, body))
 }

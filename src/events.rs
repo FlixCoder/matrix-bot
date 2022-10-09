@@ -13,7 +13,7 @@ use matrix_sdk::{
 	room::Room,
 	ruma::events::room::{
 		member::{MembershipState, StrippedRoomMemberEvent, SyncRoomMemberEvent},
-		message::{OriginalSyncRoomMessageEvent, RoomMessageEventContent},
+		message::OriginalSyncRoomMessageEvent,
 	},
 	Client,
 };
@@ -21,6 +21,7 @@ use matrix_sdk::{
 use crate::{
 	commands::{parse_arguments, Command},
 	database::Databases,
+	matrix,
 	settings::Settings,
 };
 
@@ -74,7 +75,7 @@ pub async fn on_room_message(
 					.await?;
 			}
 			Err(error) => {
-				let message = RoomMessageEventContent::text_plain(error.to_string())
+				let message = matrix::plain_message(error.to_string())
 					.make_reply_to(&event.into_full_event(room.room_id().to_owned()));
 				room.send(message, None).await?;
 			}

@@ -21,7 +21,7 @@ trait BotCommand {
 	async fn execute<'a>(&mut self, context: Context<'a>) -> Result<()>;
 }
 
-/// The command the bot should execute.
+/// The command the bot should execute. All commands are prefixed with '!'.
 #[derive(Debug, Parser)]
 #[command(name = "Matrix-Bot", author = "FlixCoder", version, about)]
 pub enum Command {

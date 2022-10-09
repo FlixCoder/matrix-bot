@@ -1,6 +1,6 @@
 //! API client functionality for Github.
 
-use std::time::Duration;
+use std::{fmt::Display, time::Duration};
 
 use color_eyre::Result;
 use reqwest::{
@@ -101,6 +101,21 @@ impl Github {
 		let entries: Vec<Notification> = response.json().await?;
 		Ok(entries)
 	}
+
+	/// Get the issue comment at the given URL.
+	pub async fn get_issue_comment_from(&self, url: Url) -> Result<IssueComment> {
+		let response = self
+			.client
+			.get(url)
+			.basic_auth(&self.user, Some(&self.token))
+			.header(header::ACCEPT, "application/vnd.github+json")
+			.send()
+			.await?
+			.error_for_status()?;
+
+		let comment: IssueComment = response.json().await?;
+		Ok(comment)
+	}
 }
 
 /// API Response type for Github notifications.
@@ -117,14 +132,14 @@ pub struct Notification {
 	pub repository: MinimalRepository,
 	/// Subject.
 	pub subject: Subject,
-	/// Subscription URL.
+	/// Subscription API URL.
 	pub subscription_url: Url,
 	/// Whether the notification is unread.
 	pub unread: bool,
 	/// Updated at datetime.
 	#[serde(with = "time::serde::iso8601")]
 	pub updated_at: OffsetDateTime,
-	/// Notification URL.
+	/// Notification API URL.
 	pub url: Url,
 }
 
@@ -160,6 +175,26 @@ pub enum NotificationReason {
 	TeamMention,
 }
 
+impl Display for NotificationReason {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		let s = match self {
+			NotificationReason::Assign => "Assigned",
+			NotificationReason::Author => "Author",
+			NotificationReason::Comment => "Comment",
+			NotificationReason::CiActivity => "CI activity",
+			NotificationReason::Invitation => "Invitation",
+			NotificationReason::Manual => "Manually subscribed",
+			NotificationReason::Mention => "Mentioned",
+			NotificationReason::ReviewRequested => "Review requested",
+			NotificationReason::SecurityAlert => "Security alert",
+			NotificationReason::StateChange => "State change",
+			NotificationReason::Subscribed => "Subscribed",
+			NotificationReason::TeamMention => "Team mentioned",
+		};
+		f.write_str(s)
+	}
+}
+
 /// Minimal Repository. TODO: This is incomplete!
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MinimalRepository {
@@ -180,19 +215,57 @@ pub struct MinimalRepository {
 	pub name: String,
 	/// Whether this is a private repository.
 	pub private: bool,
-	/// URL.
+	/// API URL.
 	pub url: Url,
 }
 
 /// Notification subject.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Subject {
-	/// Last comment URL.
+	/// Last comment API URL.
 	pub latest_comment_url: Option<Url>,
 	/// Title.
 	pub title: String,
 	/// Type.
 	pub r#type: String,
-	/// URL.
+	/// API URL.
 	pub url: Option<Url>,
+}
+
+/// An issue comment object. TODO: this is incomplete!
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IssueComment {
+	/// ID.
+	pub id: u64,
+	/// Node ID.
+	pub node_id: String,
+	/// The API URL of this comment.
+	pub url: Url,
+	/// The HTML URL.
+	pub html_url: Url,
+	/// The issue comment text.
+	pub body: String,
+	/// The user that posted the comment.
+	pub user: User,
+	/// Creation datetime.
+	#[serde(with = "time::serde::iso8601")]
+	pub created_at: OffsetDateTime,
+	/// Update datetime.
+	#[serde(with = "time::serde::iso8601::option")]
+	pub updated_at: Option<OffsetDateTime>,
+}
+
+/// A Github user. TODO: this is incomplete!
+#[derive(Debug, Serialize, Deserialize)]
+pub struct User {
+	/// ID.
+	pub id: u64,
+	/// Node ID.
+	pub node_id: String,
+	/// Login username.
+	pub login: String,
+	/// The HTML URL.
+	pub html_url: Url,
+	/// Site admin status.
+	pub site_admin: bool,
 }

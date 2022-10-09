@@ -1,7 +1,9 @@
 //! Matrix helper functions.
 
 use color_eyre::{eyre::eyre, Result as EyreResult};
-use matrix_sdk::{async_trait, Client, Result, Session};
+use matrix_sdk::{
+	async_trait, ruma::events::room::message::RoomMessageEventContent, Client, Result, Session,
+};
 
 /// Session store key for access token.
 const SESSION_ACCESS_TOKEN: &str = "SESSION_ACCESS_TOKEN";
@@ -103,4 +105,15 @@ impl ClientExt for Client {
 
 		Ok(true)
 	}
+}
+
+/// Create a matrix message, but generate escaped HTML for plain text as well as
+/// the body.
+pub fn plain_message(body: String) -> RoomMessageEventContent {
+	let html = body
+		.replace('<', "&lt;")
+		.replace('>', "&gt;")
+		.replace('&', "&amp;")
+		.replace('\n', "<br>\n");
+	RoomMessageEventContent::text_html(body, html)
 }
