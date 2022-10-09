@@ -26,7 +26,8 @@ enum SubCommand {
 	Enable {
 		/// Github login username.
 		username: String,
-		/// Github API token. Get one from https://github.com/settings/tokens.
+		/// Github API token. Get one from <https://github.com/settings/tokens>.
+		/// It needs `notifications` and `repos` API scope.
 		token: String,
 	},
 	/// Disable Github notification subscription.
