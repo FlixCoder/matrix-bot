@@ -102,8 +102,8 @@ impl Github {
 		Ok(entries)
 	}
 
-	/// Get the issue comment at the given URL.
-	pub async fn get_issue_comment_from(&self, url: Url) -> Result<IssueComment> {
+	/// Get the thread comment at the given URL.
+	pub async fn get_thread_comment_from(&self, url: Url) -> Result<ThreadComment> {
 		let response = self
 			.client
 			.get(url)
@@ -113,7 +113,7 @@ impl Github {
 			.await?
 			.error_for_status()?;
 
-		let comment: IssueComment = response.json().await?;
+		let comment: ThreadComment = response.json().await?;
 		Ok(comment)
 	}
 }
@@ -232,9 +232,9 @@ pub struct Subject {
 	pub url: Option<Url>,
 }
 
-/// An issue comment object. TODO: this is incomplete!
+/// A thread comment object. TODO: this is incomplete!
 #[derive(Debug, Serialize, Deserialize)]
-pub struct IssueComment {
+pub struct ThreadComment {
 	/// ID.
 	pub id: u64,
 	/// Node ID.
@@ -246,6 +246,7 @@ pub struct IssueComment {
 	/// The issue comment text.
 	pub body: String,
 	/// The user that posted the comment.
+	#[serde(alias = "author")]
 	pub user: User,
 	/// Creation datetime.
 	#[serde(with = "time::serde::iso8601")]

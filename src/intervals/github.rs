@@ -101,7 +101,7 @@ async fn render_notification(
 	body.push_str(&format!("{}\n", notification.repository.full_name));
 
 	if let Some(url) = notification.subject.latest_comment_url.clone() {
-		let comment = client.get_issue_comment_from(url).await?;
+		let comment = client.get_thread_comment_from(url).await?;
 		let html_url = comment.html_url;
 
 		html.push_str(&format!(
