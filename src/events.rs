@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use clap::Parser;
 use color_eyre::{
-	eyre::{bail, eyre},
+	eyre::{bail, eyre, Context},
 	Result,
 };
 use matrix_sdk::{
@@ -26,6 +26,7 @@ use crate::{
 };
 
 /// Matrix room message event handler.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn on_room_message(
 	event: OriginalSyncRoomMessageEvent,
 	room: Room,
@@ -72,7 +73,8 @@ pub async fn on_room_message(
 						&room,
 						&event.into_full_event(room.room_id().to_owned()),
 					)
-					.await?;
+					.await
+					.wrap_err("error executing the command")?;
 			}
 			Err(error) => {
 				let message = matrix::plain_message(error.to_string())
@@ -86,6 +88,7 @@ pub async fn on_room_message(
 }
 
 /// Matrix invite event handler.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn on_invite_event(
 	event: StrippedRoomMemberEvent,
 	room: Room,
@@ -122,6 +125,7 @@ pub async fn on_invite_event(
 }
 
 /// Matrix room member event handler.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn on_room_membership_event(
 	event: SyncRoomMemberEvent,
 	room: Room,
