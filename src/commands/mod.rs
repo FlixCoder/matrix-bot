@@ -48,6 +48,7 @@ impl Command {
 	}
 
 	/// Execute the command.
+	#[tracing::instrument(level = "debug", skip_all)]
 	pub async fn execute(
 		&mut self,
 		config: &Settings,
