@@ -9,10 +9,7 @@ mod jobs;
 mod matrix;
 pub mod settings;
 
-use std::{
-	sync::{Arc, Barrier},
-	time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
 use bonsaimq::JobRunner;
 use color_eyre::Result;
@@ -20,6 +17,7 @@ use matrix_sdk::{
 	config::{RequestConfig, SyncSettings},
 	Client,
 };
+use tokio::sync::watch;
 
 use crate::{
 	database::{open_databases, Databases},
@@ -102,10 +100,9 @@ async fn matrix_run(config: Arc<Settings>, databases: Databases, client: Client)
 
 /// Run the bot.
 pub async fn run(config: Arc<Settings>) -> Result<()> {
-	let stop_barrier = Arc::new(Barrier::new(2));
-	let stopper = stop_barrier.clone();
+	let (shutdown_sender, mut shutdown) = watch::channel(false);
 	ctrlc::set_handler(move || {
-		stopper.wait();
+		shutdown_sender.send(true).ok();
 	})?;
 
 	let databases = open_databases(&config).await?;
@@ -119,7 +116,11 @@ pub async fn run(config: Arc<Settings>) -> Result<()> {
 		.run::<JobRegistry>();
 	let intervals_handle = tokio::spawn(intervals::run(config, databases, client.clone()));
 
-	let termination_waiter = tokio::task::spawn_blocking(move || stop_barrier.wait());
+	let termination_waiter = tokio::spawn(async move {
+		while !*shutdown.borrow() {
+			shutdown.changed().await.ok();
+		}
+	});
 	tokio::select! {
 		res = termination_waiter => { res?; },
 		res = sync_handle => res??,
